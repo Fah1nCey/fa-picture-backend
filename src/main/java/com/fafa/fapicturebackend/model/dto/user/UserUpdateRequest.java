@@ -1,25 +1,19 @@
-package com.fafa.fapicturebackend.model.vo;
+package com.fafa.fapicturebackend.model.dto.user;
 
 import lombok.Data;
 
 import java.io.Serializable;
-import java.util.Date;
 
 /**
- * 脱敏后的用户信息响应类（用于登录接口的脱敏）
+ * 管理员更新用户请求类
  */
 @Data
-public class LoginUserVO implements Serializable {
+public class UserUpdateRequest implements Serializable {
 
     /**
-     * 用户 id
+     * id
      */
     private Long id;
-
-    /**
-     * 账号
-     */
-    private String userAccount;
 
     /**
      * 用户昵称
@@ -32,7 +26,7 @@ public class LoginUserVO implements Serializable {
     private String userAvatar;
 
     /**
-     * 用户简介
+     * 简介
      */
     private String userProfile;
 
@@ -41,16 +35,5 @@ public class LoginUserVO implements Serializable {
      */
     private String userRole;
 
-    /**
-     * 创建时间
-     */
-    private Date createTime;
-
-    /**
-     * 更新时间
-     */
-    private Date updateTime;
-
     private static final long serialVersionUID = 1L;
 }
-

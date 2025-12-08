@@ -1,10 +1,14 @@
 package com.fafa.fapicturebackend.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.fafa.fapicturebackend.model.dto.user.UserQueryRequest;
 import com.fafa.fapicturebackend.model.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.fafa.fapicturebackend.model.vo.LoginUserVO;
+import com.fafa.fapicturebackend.model.vo.UserVO;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
 * @author 86156
@@ -32,6 +36,13 @@ public interface UserService extends IService<User> {
     LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request);
 
     /**
+     * 获取加密后的密码
+     * @param userPassword
+     * @return
+     */
+    String getEncryptPassword(String userPassword);
+
+    /**
      * 获取当前登录用户
      * @param request
      * @return
@@ -39,7 +50,7 @@ public interface UserService extends IService<User> {
     User getLoginUser(HttpServletRequest request);
 
     /**
-     * 获取脱敏后的用户信息
+     * 获取脱敏后的用户信息(用于登录)
      * @param loginUser
      * @return
      */
@@ -51,4 +62,25 @@ public interface UserService extends IService<User> {
      * @return
      */
     boolean userLogout(HttpServletRequest request);
+
+    /**
+     * 获取脱敏后的用户信息(用于搜索)
+     * @param user
+     * @return
+     */
+    UserVO getUserVO(User user);
+
+    /**
+     * 获取脱敏后的用户信息列表(用于搜索)
+     * @param userList
+     * @return
+     */
+    List<UserVO> getUserVOList(List<User> userList);
+
+    /**
+     * 将查询请求转换为QueryWrapper对象
+     * @param userQueryRequest
+     * @return
+     */
+    QueryWrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest);
 }
