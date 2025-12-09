@@ -14,6 +14,7 @@ import com.fafa.fapicturebackend.model.vo.LoginUserVO;
 import com.fafa.fapicturebackend.model.vo.UserVO;
 import com.fafa.fapicturebackend.service.UserService;
 import com.fafa.fapicturebackend.mapper.UserMapper;
+import com.fafa.fapicturebackend.utils.PasswordEncoderUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -61,7 +62,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号重复");
         }
         // 3. 加密密码
-        String encryptPassword = getEncryptPassword(userPassword);
+        String encryptPassword = PasswordEncoderUtil.encode(userPassword);
         // 4. 插入用户信息
         User user = new User();
         user.setUserAccount(userAccount);
@@ -76,12 +77,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     @Override
-    public String getEncryptPassword(String userPassword) {
-        final String SALT = "fafa";
-        return DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
-    }
-
-    @Override
     public LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request) {
         // 1. 校验参数
         if (StrUtil.hasBlank(userAccount, userPassword)) {
@@ -93,17 +88,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         if (userPassword.length() < 8) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码错误");
         }
-        // 2. 加密
-        String encryptPassword = getEncryptPassword(userPassword);
         // 查询用户是否存在
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("userAccount", userAccount);
-        queryWrapper.eq("userPassword", encryptPassword);
         User user = this.getOne(queryWrapper);
         // 用户不存在
         if (user == null) {
-            log.info("用户登录失败, 用户名不存在或密码错误");
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户名不存在或密码错误");
+            log.info("用户登录失败, 账号不存在");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号不存在");
+        }
+        // 2. 验证密码是否正确
+        String encryptPassword = user.getUserPassword();
+        if (!PasswordEncoderUtil.matches(userPassword, encryptPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码错误");
         }
         // 3. 记录用户的登录态,保存脱敏后的用户数据
         LoginUserVO safetyUser =  getLoginUserVO(user);
