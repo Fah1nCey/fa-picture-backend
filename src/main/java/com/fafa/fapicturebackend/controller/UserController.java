@@ -15,6 +15,7 @@ import com.fafa.fapicturebackend.model.entity.User;
 import com.fafa.fapicturebackend.model.vo.LoginUserVO;
 import com.fafa.fapicturebackend.model.vo.UserVO;
 import com.fafa.fapicturebackend.service.UserService;
+import com.fafa.fapicturebackend.utils.PasswordEncoderUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -96,7 +97,7 @@ public class UserController {
         BeanUtils.copyProperties(userAddRequest, user);
         // 默认密码 12345678
         final String DEFAULT_PASSWORD = "12345678";
-        String encryptPassword = userService.getEncryptPassword(DEFAULT_PASSWORD);
+        String encryptPassword = PasswordEncoderUtil.encode(DEFAULT_PASSWORD);
         user.setUserPassword(encryptPassword);
         boolean result = userService.save(user);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
