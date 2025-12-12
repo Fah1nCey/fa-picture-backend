@@ -1,11 +1,16 @@
 package com.fafa.fapicturebackend.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fafa.fapicturebackend.model.dto.picture.PictureQueryRequest;
 import com.fafa.fapicturebackend.model.dto.picture.PictureUploadRequest;
 import com.fafa.fapicturebackend.model.entity.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.fafa.fapicturebackend.model.entity.User;
 import com.fafa.fapicturebackend.model.vo.PictureVO;
 import org.springframework.web.multipart.MultipartFile;
+
+import javax.servlet.http.HttpServletRequest;
 
 /**
 * @author 86156
@@ -26,5 +31,32 @@ public interface PictureService extends IService<Picture> {
                             PictureUploadRequest pictureUploadRequest,
                             User loginUser);
 
+    /**
+     * 根据查询条件获取查询包装器
+     * @param pictureQueryRequest
+     * @return
+     */
+    QueryWrapper<Picture> getQueryWrapper(PictureQueryRequest pictureQueryRequest);
 
+    /**
+     * 获取单个图片封装
+     * @param picture
+     * @param request
+     * @return
+     */
+    PictureVO getPictureVO(Picture picture, HttpServletRequest request);
+
+    /**
+     * 获取分页图片封装
+     * @param picturePage
+     * @param request
+     * @return
+     */
+    Page<PictureVO> getPictureVOPage(Page<Picture> picturePage, HttpServletRequest request);
+
+    /**
+     * 校验图片数据
+     * @param picture
+     */
+    void validPicture(Picture picture);
 }
