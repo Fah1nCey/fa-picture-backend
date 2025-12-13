@@ -9,7 +9,9 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fafa.fapicturebackend.exception.BusinessException;
 import com.fafa.fapicturebackend.exception.ErrorCode;
 import com.fafa.fapicturebackend.exception.ThrowUtils;
-import com.fafa.fapicturebackend.manager.FileManager;
+import com.fafa.fapicturebackend.manager.upload.FilePictureUpload;
+import com.fafa.fapicturebackend.manager.upload.PictureUploadTemplate;
+import com.fafa.fapicturebackend.manager.upload.UrlPictureUpload;
 import com.fafa.fapicturebackend.model.dto.file.UploadPictureResult;
 import com.fafa.fapicturebackend.model.dto.picture.PictureQueryRequest;
 import com.fafa.fapicturebackend.model.dto.picture.PictureReviewRequest;
@@ -24,7 +26,6 @@ import com.fafa.fapicturebackend.mapper.PictureMapper;
 import com.fafa.fapicturebackend.service.UserService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -44,13 +45,19 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     implements PictureService{
 
     @Resource
-    private FileManager fileManager;
+    private FilePictureUpload filePictureUpload;
+
+    @Resource
+    private UrlPictureUpload urlPictureUpload;
 
     @Resource
     private UserService userService;
 
     @Override
-    public PictureVO uploadPicture(MultipartFile multipartFile, PictureUploadRequest pictureUploadRequest, User loginUser) {
+    public PictureVO uploadPicture(Object inputSource, PictureUploadRequest pictureUploadRequest, User loginUser) {
+        if (inputSource == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "上传图片不能为空");
+        }
         ThrowUtils.throwIf(loginUser == null, ErrorCode.NO_AUTH_ERROR);
         // 用于判断是新增还是更新图片
         Long pictureId = null;
@@ -69,7 +76,12 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 上传图片，得到信息
         // 按照用户 id 划分目录
         String uploadPathPrefix = String.format("public/%s", loginUser.getId());
-        UploadPictureResult uploadPictureResult = fileManager.uploadPicture(multipartFile, uploadPathPrefix);
+        // 根据inputSource类型，选择上传方式
+        PictureUploadTemplate pictureUploadTemplate = filePictureUpload; //多态
+        if (inputSource instanceof String) {
+            pictureUploadTemplate = urlPictureUpload;
+        }
+        UploadPictureResult uploadPictureResult = pictureUploadTemplate.uploadPicture(inputSource, uploadPathPrefix);
         // 构造要入库的图片信息
         Picture picture = new Picture();
         picture.setUrl(uploadPictureResult.getUrl());
