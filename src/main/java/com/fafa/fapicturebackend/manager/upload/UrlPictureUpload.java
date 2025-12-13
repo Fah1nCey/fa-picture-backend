@@ -23,8 +23,10 @@ import java.util.List;
 @Service
 public class UrlPictureUpload extends PictureUploadTemplate {  
     @Override  
-    protected void validPicture(Object inputSource) {  
-        String fileUrl = (String) inputSource;  
+    protected String validPicture(Object inputSource) {
+        String fileUrl = (String) inputSource;
+        // 文件后缀名
+        String suffixFromContentType = "";
         ThrowUtils.throwIf(StrUtil.isBlank(fileUrl), ErrorCode.PARAMS_ERROR, "文件地址不能为空");
         try {
             // 1. 验证 URL 格式
@@ -41,17 +43,20 @@ public class UrlPictureUpload extends PictureUploadTemplate {
         HttpResponse response = null;
         try {
             response = HttpUtil.createRequest(Method.HEAD, fileUrl).execute();
-            // 未正常返回(有些URL不支持HEAD请求)，无需执行其他判断，直接返回(提供导入成功率)
+            // 未正常返回(有些URL不支持HEAD请求)，无需执行其他判断，直接返回(提高导入成功率)
             if (response.getStatus() != HttpStatus.HTTP_OK) {
-                return;
+                return suffixFromContentType;
             }
             // 4. 校验文件类型
             String contentType = response.header("Content-Type");
+
             if (StrUtil.isNotBlank(contentType)) {
                 // 允许的图片类型
                 final List<String> ALLOW_CONTENT_TYPES = Arrays.asList("image/jpeg", "image/jpg", "image/png", "image/webp");
                 ThrowUtils.throwIf(!ALLOW_CONTENT_TYPES.contains(contentType.toLowerCase()),
                         ErrorCode.PARAMS_ERROR, "文件类型错误");
+                // 获取图片的后缀名(方便后续拼接url)
+                suffixFromContentType = getSuffixFromContentType(contentType);
             }
             // 5. 校验文件大小
             String contentLengthStr = response.header("Content-Length");
@@ -70,6 +75,7 @@ public class UrlPictureUpload extends PictureUploadTemplate {
                 response.close();
             }
         }
+        return suffixFromContentType;
     }  
   
     @Override  
@@ -84,5 +90,20 @@ public class UrlPictureUpload extends PictureUploadTemplate {
         String fileUrl = (String) inputSource;  
         // 下载文件到临时目录  
         HttpUtil.downloadFile(fileUrl, file);
-    }  
+    }
+
+    /**
+     * 根据 Content-Type 获取文件后缀名
+     * @param contentType
+     * @return
+     */
+    private String getSuffixFromContentType(String contentType) {
+        switch (contentType.toLowerCase()) {
+            case "image/jpeg" : return "jpeg";
+            case "image/jpg" : return "jpg";
+            case "image/png" : return "png";
+            case "image/webp" : return "webp";
+            default: return "";
+        }
+    }
 }

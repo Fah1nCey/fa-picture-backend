@@ -33,14 +33,21 @@ public abstract class PictureUploadTemplate {
      * 模板方法，定义上传流程  
      */  
     public final UploadPictureResult uploadPicture(Object inputSource, String uploadPathPrefix) {
-        // 1. 校验图片  
-        validPicture(inputSource);  
-  
+        // 1. 校验图片并获取文件后缀名
+        String contentType = validPicture(inputSource);
+
         // 2. 图片上传地址  
         String uuid = RandomUtil.randomString(16);
-        String originFilename = getOriginFilename(inputSource);  
-        String uploadFilename = String.format("%s_%s.%s", DateUtil.formatDate(new Date()), uuid,
-                FileUtil.getSuffix(originFilename));
+        String originFilename = getOriginFilename(inputSource);
+        String uploadFilename;
+        // 如果能获取到contentType，则使用处理后的contentType作为后缀名
+        if (contentType != null && !contentType.isEmpty()) {
+            uploadFilename = String.format("%s_%s.%s", DateUtil.formatDate(new Date()), uuid,
+                    contentType);
+        } else {
+            uploadFilename = String.format("%s_%s.%s", DateUtil.formatDate(new Date()), uuid,
+                    FileUtil.getSuffix(originFilename));
+        }
         String uploadPath = String.format("%s/%s", uploadPathPrefix, uploadFilename);
   
         File file = null;  
@@ -68,7 +75,7 @@ public abstract class PictureUploadTemplate {
     /**  
      * 校验输入源（本地文件或 URL）  
      */  
-    protected abstract void validPicture(Object inputSource);  
+    protected abstract String validPicture(Object inputSource);
   
     /**  
      * 获取输入源的原始文件名  
