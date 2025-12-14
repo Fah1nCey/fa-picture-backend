@@ -280,6 +280,10 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     @Override
     public Integer uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest, User loginUser) {
         String searchText = pictureUploadByBatchRequest.getSearchText();
+        String namePrefix = pictureUploadByBatchRequest.getNamePrefix();
+        if (StrUtil.isBlank(namePrefix)) {
+            namePrefix = searchText;
+        }
         // 格式化数量
         Integer count = pictureUploadByBatchRequest.getCount();
         ThrowUtils.throwIf(count > 30, ErrorCode.PARAMS_ERROR, "最多 30 条");
@@ -296,10 +300,20 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         if (ObjUtil.isNull(div)) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "获取元素失败");
         }
-        Elements imgElementList = div.select("img.mimg");
+        Elements imgElementList = div.select("a.iusc");
         int uploadCount = 0;
         for (Element imgElement : imgElementList) {
-            String fileUrl = imgElement.attr("src");
+            // 获取m属性中的Json字符串
+            String dataM = imgElement.attr("m");
+            String fileUrl = null;
+            try {
+                // 反序列化Json字符串
+                JSONObject jsonObject = JSONUtil.parseObj(dataM);
+                // 获取murl字段（原始图片url）
+                fileUrl = jsonObject.getStr("murl");
+            } catch (Exception e) {
+                log.error("解析图片数据失败", e);
+            }
             if (StrUtil.isBlank(fileUrl)) {
                 log.info("当前链接为空，已跳过: {}", fileUrl);
                 continue;
@@ -311,6 +325,10 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             }
             // 上传图片
             PictureUploadRequest pictureUploadRequest = new PictureUploadRequest();
+            if (StrUtil.isNotBlank(namePrefix)) {
+                // 设置图片名称，序号连续递增
+                pictureUploadRequest.setPicName(namePrefix + (uploadCount + 1));
+            }
             try {
                 PictureVO pictureVO = this.uploadPicture(fileUrl, pictureUploadRequest, loginUser);
                 log.info("图片上传成功, id = {}", pictureVO.getId());
@@ -325,8 +343,6 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         }
         return uploadCount;
     }
-
-
 }
 
 

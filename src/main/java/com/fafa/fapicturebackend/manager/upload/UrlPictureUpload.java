@@ -49,6 +49,9 @@ public class UrlPictureUpload extends PictureUploadTemplate {
             }
             // 4. 校验文件类型
             String contentType = response.header("Content-Type");
+            //注：批量抓取必应图片的响应体的Content-Type为x-upyun-content-type，故此处无法获取
+            //但url有图片扩展名，所以没事。
+            //bug：响应体中没有Content-Type且url也没有图片扩展名时，上传cos图片将无法预览
 
             if (StrUtil.isNotBlank(contentType)) {
                 // 允许的图片类型
