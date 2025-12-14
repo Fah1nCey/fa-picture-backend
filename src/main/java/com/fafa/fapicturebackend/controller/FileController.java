@@ -22,6 +22,7 @@ import java.io.IOException;
 @RestController
 @RequestMapping("/file")
 @Slf4j
+@Deprecated
 public class FileController {
 
     @Resource
