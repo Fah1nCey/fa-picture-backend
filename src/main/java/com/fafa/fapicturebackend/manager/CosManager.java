@@ -1,5 +1,6 @@
 package com.fafa.fapicturebackend.manager;
 
+import cn.hutool.core.io.FileUtil;
 import com.fafa.fapicturebackend.config.CosClientConfig;
 import com.qcloud.cos.COSClient;
 import com.qcloud.cos.model.COSObject;
@@ -12,6 +13,8 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 提供通用的对象存储操作，比如文件上传、文件下载等。
@@ -49,7 +52,7 @@ public class CosManager {
     }
 
     /**
-     * 上传对象（附带图片信息）
+     * 上传对象（附带图片信息 + 压缩为webp）
      *
      * @param key  唯一键
      * @param file 文件
@@ -61,10 +64,20 @@ public class CosManager {
         PicOperations picOperations = new PicOperations();
         // 1 表示返回原图信息
         picOperations.setIsPicInfo(1);
+        List<PicOperations.Rule> rules = new ArrayList<>();
+        // 图片压缩（转成 webp 格式）
+        String webpKey = FileUtil.mainName(key) + ".webp";
+        PicOperations.Rule compressRule = new PicOperations.Rule();
+        compressRule.setRule("imageMogr2/format/webp");
+        compressRule.setBucket(cosClientConfig.getBucket());
+        compressRule.setFileId(webpKey);
+        rules.add(compressRule);
         // 构造处理参数
+        picOperations.setRules(rules);
         putObjectRequest.setPicOperations(picOperations);
         return cosClient.putObject(putObjectRequest);
     }
+
 
 
 
