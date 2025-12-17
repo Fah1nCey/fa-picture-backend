@@ -2,6 +2,11 @@ server:
   port: 8123
   servlet:
     context-path: /api
+    # cookie 30天过期
+    session:
+      cookie:
+        max-age: 2592000
+
 spring:
   application:
     name: fa-picture-backend
@@ -23,6 +28,11 @@ spring:
     host: 127.0.0.1
     port: 6379
     timeout: 5000
+  # session配置
+  session:
+    store-type: redis
+    # session 30天过期
+    timeout: 2592000
 
 
 mybatis-plus:
