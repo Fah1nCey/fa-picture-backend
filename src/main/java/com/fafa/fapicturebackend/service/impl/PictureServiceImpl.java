@@ -8,9 +8,11 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fafa.fapicturebackend.config.CosClientConfig;
 import com.fafa.fapicturebackend.exception.BusinessException;
 import com.fafa.fapicturebackend.exception.ErrorCode;
 import com.fafa.fapicturebackend.exception.ThrowUtils;
+import com.fafa.fapicturebackend.manager.DeleteFileManager;
 import com.fafa.fapicturebackend.manager.upload.FilePictureUpload;
 import com.fafa.fapicturebackend.manager.upload.PictureUploadTemplate;
 import com.fafa.fapicturebackend.manager.upload.UrlPictureUpload;
@@ -27,21 +29,20 @@ import com.fafa.fapicturebackend.model.vo.UserVO;
 import com.fafa.fapicturebackend.service.PictureService;
 import com.fafa.fapicturebackend.mapper.PictureMapper;
 import com.fafa.fapicturebackend.service.UserService;
+import com.qcloud.cos.model.DeleteObjectsRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.beans.BeanUtils;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -63,6 +64,12 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     @Resource
     private UserService userService;
 
+    @Resource
+    private DeleteFileManager deleteFileManager;
+
+    @Resource
+    private CosClientConfig cosClientConfig;
+
     @Override
     public PictureVO uploadPicture(Object inputSource, PictureUploadRequest pictureUploadRequest, User loginUser) {
         if (inputSource == null) {
@@ -75,11 +82,12 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             pictureId = pictureUploadRequest.getId();
         }
         // 如果是更新图片，需要校验图片是否存在
+        Picture oldPicture = null;
         if (pictureId != null) {
-            Picture oldPicture = this.getById(pictureId);
+            oldPicture = this.getById(pictureId);
             ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR, "图片不存在");
             // 仅本人或管理员可编辑
-            if (!oldPicture.getUserId().equals(loginUser.getId()) || !userService.isAdmin(loginUser)) {
+            if (!oldPicture.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
                 throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限修改该图片");
             }
         }
@@ -117,6 +125,10 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         }
         boolean result = this.saveOrUpdate(picture);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "图片上传失败");
+        // 如果 pictureId 不为空，表示更新，图片更新成功，则删除cos图片
+        if (pictureId != null) {
+            this.clearPictureFile(oldPicture);
+        }
         return PictureVO.objToVo(picture);
     }
 
@@ -343,6 +355,31 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             }
         }
         return uploadCount;
+    }
+
+    @Async
+    @Override
+    public void clearPictureFile(Picture oldPicture) {
+        // 判断该图片是否被多条记录引用（在实现文件妙传时才使用）
+        String pictureUrl = oldPicture.getUrl();
+        Long count = this.lambdaQuery().eq(Picture::getUrl, pictureUrl).count();
+        if (count > 1) {
+            return;
+        }
+        // 获取压缩图相对路径, 加入批量删除列表
+        String pictureUrlPath = pictureUrl.replace(cosClientConfig.getHost() + "/", "");
+        // 设置要删除的key列表, 最多一次删除1000个
+        ArrayList<DeleteObjectsRequest.KeyVersion> keyList = new ArrayList<>();
+        keyList.add(new DeleteObjectsRequest.KeyVersion(pictureUrlPath));
+        // 判断缩略图是否存在
+        String thumbnailUrl = oldPicture.getThumbnailUrl();
+        if (StrUtil.isNotBlank(thumbnailUrl)) {
+            // 存在则也加入批量删除列表
+            String thumbnailUrlPath = thumbnailUrl.replace(cosClientConfig.getHost() + "/", "");
+            keyList.add(new DeleteObjectsRequest.KeyVersion(thumbnailUrlPath));
+        }
+        // 删除图片列表
+        deleteFileManager.deletePictureObjects(keyList);
     }
 }
 

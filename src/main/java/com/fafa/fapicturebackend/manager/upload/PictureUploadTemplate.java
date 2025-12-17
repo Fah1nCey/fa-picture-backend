@@ -9,6 +9,7 @@ import com.fafa.fapicturebackend.config.CosClientConfig;
 import com.fafa.fapicturebackend.exception.BusinessException;
 import com.fafa.fapicturebackend.exception.ErrorCode;
 import com.fafa.fapicturebackend.manager.CosManager;
+import com.fafa.fapicturebackend.manager.DeleteFileManager;
 import com.fafa.fapicturebackend.model.dto.file.UploadPictureResult;
 import com.qcloud.cos.model.PutObjectResult;
 import com.qcloud.cos.model.ciModel.persistence.CIObject;
@@ -32,6 +33,9 @@ public abstract class PictureUploadTemplate {
   
     @Resource  
     protected CosClientConfig cosClientConfig;
+
+    @Resource
+    private DeleteFileManager deleteFileManager;
   
     /**  
      * 模板方法，定义上传流程  

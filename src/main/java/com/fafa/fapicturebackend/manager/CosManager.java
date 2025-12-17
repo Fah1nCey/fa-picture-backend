@@ -3,10 +3,8 @@ package com.fafa.fapicturebackend.manager;
 import cn.hutool.core.io.FileUtil;
 import com.fafa.fapicturebackend.config.CosClientConfig;
 import com.qcloud.cos.COSClient;
-import com.qcloud.cos.model.COSObject;
-import com.qcloud.cos.model.GetObjectRequest;
-import com.qcloud.cos.model.PutObjectRequest;
-import com.qcloud.cos.model.PutObjectResult;
+import com.qcloud.cos.exception.CosClientException;
+import com.qcloud.cos.model.*;
 
 import com.qcloud.cos.model.ciModel.persistence.PicOperations;
 import org.springframework.stereotype.Component;
@@ -87,5 +85,26 @@ public class CosManager {
         putObjectRequest.setPicOperations(picOperations);
         return cosClient.putObject(putObjectRequest);
     }
+
+    /**
+     * 删除对象(单个)
+     * @param key 文件 key
+     */
+    public void deleteObject(String key) throws CosClientException {
+        cosClient.deleteObject(cosClientConfig.getBucket(), key);
+    }
+
+    /**
+     * 批量删除对象(多个)
+     * @param keyList 要删除的key列表
+     */
+    public void deleteObjects(ArrayList<DeleteObjectsRequest.KeyVersion> keyList) {
+        DeleteObjectsRequest deleteObjectsRequest = new DeleteObjectsRequest(cosClientConfig.getBucket());
+        deleteObjectsRequest.setKeys(keyList);
+        cosClient.deleteObjects(deleteObjectsRequest);
+    }
+
+
+
 
 }

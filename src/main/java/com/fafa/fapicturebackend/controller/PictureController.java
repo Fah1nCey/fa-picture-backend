@@ -1,16 +1,19 @@
 package com.fafa.fapicturebackend.controller;
 
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fafa.fapicturebackend.annotation.AuthCheck;
 import com.fafa.fapicturebackend.common.BaseResponse;
 import com.fafa.fapicturebackend.common.DeleteRequest;
 import com.fafa.fapicturebackend.common.ResultUtils;
+import com.fafa.fapicturebackend.config.CosClientConfig;
 import com.fafa.fapicturebackend.constant.UserConstant;
 import com.fafa.fapicturebackend.exception.BusinessException;
 import com.fafa.fapicturebackend.exception.ErrorCode;
 import com.fafa.fapicturebackend.exception.ThrowUtils;
+import com.fafa.fapicturebackend.manager.DeleteFileManager;
 import com.fafa.fapicturebackend.model.dto.picture.*;
 import com.fafa.fapicturebackend.model.entity.Picture;
 import com.fafa.fapicturebackend.model.entity.User;
@@ -19,6 +22,7 @@ import com.fafa.fapicturebackend.model.vo.PictureTagCategory;
 import com.fafa.fapicturebackend.model.vo.PictureVO;
 import com.fafa.fapicturebackend.service.PictureService;
 import com.fafa.fapicturebackend.service.UserService;
+import com.qcloud.cos.model.DeleteObjectsRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -29,6 +33,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -47,6 +54,12 @@ public class PictureController {
     
     @Resource
     private StringRedisTemplate stringRedisTemplate;
+
+    @Resource
+    private DeleteFileManager deleteFileManager;
+
+    @Resource
+    private CosClientConfig cosClientConfig;
 
     /**
      * 上传图片（可重新上传,即更新图片）
@@ -92,6 +105,8 @@ public class PictureController {
         if (!oldPicture.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
+        // 删除cos中的图片（压缩图和缩略图）
+        pictureService.clearPictureFile(oldPicture);
         // 操作数据库
         boolean result = pictureService.removeById(id);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
