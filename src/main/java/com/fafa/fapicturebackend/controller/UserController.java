@@ -110,7 +110,7 @@ public class UserController {
     @GetMapping("/get")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<User> getUserById(long id) {
-        ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR, "用户id不存在");
         User user = userService.getById(id);
         ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR);
         return ResultUtils.success(user);

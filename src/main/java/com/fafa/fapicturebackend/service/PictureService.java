@@ -2,10 +2,7 @@ package com.fafa.fapicturebackend.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.fafa.fapicturebackend.model.dto.picture.PictureQueryRequest;
-import com.fafa.fapicturebackend.model.dto.picture.PictureReviewRequest;
-import com.fafa.fapicturebackend.model.dto.picture.PictureUploadByBatchRequest;
-import com.fafa.fapicturebackend.model.dto.picture.PictureUploadRequest;
+import com.fafa.fapicturebackend.model.dto.picture.*;
 import com.fafa.fapicturebackend.model.entity.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.fafa.fapicturebackend.model.entity.User;
@@ -93,4 +90,24 @@ public interface PictureService extends IService<Picture> {
      */
     public void clearPictureFile(Picture oldPicture);
 
+    /**
+     * 校验删除和编辑图片权限
+     * @param loginUser
+     * @param picture
+     */
+    void checkPictureAuth(User loginUser, Picture picture);
+
+    /**
+     * 删除图片
+     * @param pictureId
+     * @param loginUser
+     */
+    void deletePicture(long pictureId, User loginUser);
+
+    /**
+     * 编辑图片
+     * @param pictureEditRequest
+     * @param loginUser
+     */
+    void editPicture(PictureEditRequest pictureEditRequest, User loginUser);
 }
